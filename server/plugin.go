@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/gorilla/mux"
+	"github.com/gorilla/websocket"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
@@ -19,6 +20,7 @@ type Plugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 	router        *mux.Router
+	ws            *websocket.Conn
 }
 
 // ServeHTTP handles HTTP requests

@@ -7,9 +7,11 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
 	"github.com/gorilla/mux"
-	"github.com/mattermost/mattermost-plugin-starter-template/server/serializer"
+	"github.com/gorilla/websocket"
 	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 // InitAPI initializes the REST API
@@ -21,12 +23,72 @@ func (p *Plugin) InitAPI() *mux.Router {
 	s := r.PathPrefix("/api/v1").Subrouter()
 
 	// Add the custom plugin routes here
+	s.HandleFunc("/status/publish", p.PublishStatusChanged).Methods(http.MethodPost)
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
+	s.HandleFunc("/ws", p.HandleWebsocketConnection).Methods(http.MethodGet)
 
 	// 404 handler
 	r.Handle("{anything:.*}", http.NotFoundHandler())
 	return r
+}
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  model.SocketMaxMessageSizeKb,
+	WriteBufferSize: model.SocketMaxMessageSizeKb,
+}
+
+func (p *Plugin) HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
+	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
+
+	// upgrade this connection to a WebSocket
+	// connection
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		p.API.LogError("error in creating websocket", "Error", err.Error())
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	p.ws = ws
+	reader(ws, p.API)
+}
+
+// a reader which listens for new messages being sent to our WebSocket endpoint
+func reader(conn *websocket.Conn, api plugin.API) {
+	for {
+		// read in a message
+		messageType, p, err := conn.ReadMessage()
+		if err != nil {
+			api.LogError(err.Error())
+			return
+		}
+
+		// write the same message back
+		if err := conn.WriteMessage(messageType, p); err != nil {
+			api.LogError(err.Error())
+			return
+		}
+
+	}
+}
+
+func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
+	statusChangedEvent := serializer.StatusChangedEventFromJson(r.Body)
+	if err := statusChangedEvent.PrePublish(); err != nil {
+		p.API.LogError(err.Error())
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	user, userErr := p.API.GetUser(statusChangedEvent.UserID)
+	if userErr != nil {
+		p.API.LogError(fmt.Sprintf("Unable to get user by id %s. Error: %v", statusChangedEvent.UserID, userErr.Error()))
+		http.Error(w, fmt.Sprintf("Unable to get user by id %s. Error: %v", statusChangedEvent.UserID, userErr.Error()), userErr.StatusCode)
+		return
+	}
+	statusChangedEvent.Email = user.Email
+	p.ws.WriteJSON(statusChangedEvent)
+	returnStatusOK(w)
 }
 
 func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
@@ -104,6 +166,13 @@ func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 		p.API.LogError(wErr.Error())
 		http.Error(w, wErr.Error(), http.StatusInternalServerError)
 	}
+}
+
+func returnStatusOK(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "application/json")
+	m := make(map[string]string)
+	m[model.STATUS] = model.StatusOk
+	_, _ = w.Write([]byte(model.MapToJSON(m)))
 }
 
 // handleStaticFiles handles the static files under the assets directory.
