@@ -8,10 +8,9 @@ import (
 	"runtime/debug"
 
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"github.com/mattermost/mattermost-server/v6/model"
-	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 // InitAPI initializes the REST API
@@ -27,51 +26,27 @@ func (p *Plugin) InitAPI() *mux.Router {
 	// TODO: Remove the API below as it is unnecessary
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
-	s.HandleFunc("/ws", p.HandleWebsocketConnection).Methods(http.MethodGet)
+	s.HandleFunc("/ws", p.serveWs)
 
 	// 404 handler
 	r.Handle("{anything:.*}", http.NotFoundHandler())
 	return r
 }
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  model.SocketMaxMessageSizeKb,
-	WriteBufferSize: model.SocketMaxMessageSizeKb,
-}
-
-func (p *Plugin) HandleWebsocketConnection(w http.ResponseWriter, r *http.Request) {
-	upgrader.CheckOrigin = func(r *http.Request) bool { return true }
-
-	// upgrade this connection to a WebSocket
-	// connection
-	ws, err := upgrader.Upgrade(w, r, nil)
+func (p *Plugin) serveWs(w http.ResponseWriter, r *http.Request) {
+	conn, err := websocket.CreateConnection(w, r)
 	if err != nil {
-		p.API.LogError("error in creating websocket", "Error", err.Error())
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		p.API.LogError(err.Error())
 		return
 	}
 
-	p.ws = ws
-	reader(ws, p.API)
-}
-
-// a reader which listens for new messages being sent to our WebSocket endpoint
-func reader(conn *websocket.Conn, api plugin.API) {
-	for {
-		// read in a message
-		messageType, p, err := conn.ReadMessage()
-		if err != nil {
-			api.LogError(err.Error())
-			return
-		}
-
-		// write the same message back
-		if err := conn.WriteMessage(messageType, p); err != nil {
-			api.LogError(err.Error())
-			return
-		}
-
+	client := &websocket.Client{
+		Conn: conn,
+		Pool: p.wsPool,
 	}
+
+	p.wsPool.Register <- client
+	client.Read()
 }
 
 func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
@@ -87,7 +62,7 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statusChangedEvent.Email = user.Email
-	p.ws.WriteJSON(statusChangedEvent)
+	p.wsPool.Broadcast <- statusChangedEvent
 	returnStatusOK(w)
 }
 
@@ -124,9 +99,9 @@ func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
-	users := serializer.UsersFromJson(r.Body)
+	emails := serializer.EmailsFromJson(r.Body)
 	userIds := make([]string, 0)
-	for _, email := range users.Emails {
+	for _, email := range *emails {
 		if !model.IsValidEmail(email) {
 			p.logAndReturnError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
 			return

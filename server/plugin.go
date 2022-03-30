@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"sync"
 
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
@@ -20,7 +20,7 @@ type Plugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 	router        *mux.Router
-	ws            *websocket.Conn
+	wsPool        *websocket.Pool
 }
 
 // ServeHTTP handles HTTP requests
