@@ -21,10 +21,12 @@ type StatusChangedEvent struct {
 	Status string `json:"status"`
 }
 
-func StatusChangedEventFromJson(data io.Reader) *StatusChangedEvent {
+func StatusChangedEventFromJson(data io.Reader) (*StatusChangedEvent, error) {
 	var s *StatusChangedEvent
-	_ = json.NewDecoder(data).Decode(&s)
-	return s
+	if err := json.NewDecoder(data).Decode(&s); err != nil {
+		return nil, err
+	}
+	return s, nil
 }
 
 func (s *StatusChangedEvent) PrePublish() error {

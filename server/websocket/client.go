@@ -1,9 +1,8 @@
 package websocket
 
 import (
-	"fmt"
-
 	"github.com/gorilla/websocket"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 type Client struct {
@@ -11,22 +10,19 @@ type Client struct {
 	Pool *Pool
 }
 
-func (c *Client) Read() {
+func (c *Client) Read(api plugin.API) {
 	defer func() {
 		c.Pool.Unregister <- c
 		c.Conn.Close()
 	}()
 
 	for {
-		messageType, content, err := c.Conn.ReadMessage()
+		_, content, err := c.Conn.ReadMessage()
 		if err != nil {
-			fmt.Println(err.Error())
+			api.LogError("error in reading the message received through the websocket.", "Error", err.Error())
 			return
 		}
 
-		if err = c.Conn.WriteMessage(messageType, content); err != nil {
-			fmt.Println(err.Error())
-			return
-		}
+		api.LogInfo("message received through the websocket.", "Message", string(content))
 	}
 }

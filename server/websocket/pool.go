@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 type Pool struct {
@@ -22,21 +23,20 @@ func NewPool() *Pool {
 	}
 }
 
-func (p *Pool) Start() {
+func (p *Pool) Start(api plugin.API) {
 	for {
 		select {
 		case client := <-p.Register:
 			p.Clients[client] = true
-			fmt.Printf("Size of connection pool: %d", len(p.Clients))
+			api.LogInfo(fmt.Sprintf("Size of connection pool: %d", len(p.Clients)))
 		case client := <-p.Unregister:
 			delete(p.Clients, client)
-			fmt.Printf("Size of connection pool: %d", len(p.Clients))
+			api.LogInfo(fmt.Sprintf("Size of connection pool: %d", len(p.Clients)))
 		case statusChangedEvent := <-p.Broadcast:
-			fmt.Println("Sending message to all clients in pool")
+			api.LogInfo("Sending message to all clients in pool")
 			for client, _ := range p.Clients {
 				if err := client.Conn.WriteJSON(statusChangedEvent); err != nil {
-					fmt.Println(err)
-					return
+					api.LogError("error in broadcasting the status changed event.", "Error", err.Error())
 				}
 			}
 		}

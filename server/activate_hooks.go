@@ -9,7 +9,7 @@ func (p *Plugin) OnActivate() error {
 
 	// Initialize DB service
 	pool := websocket.NewPool()
-	go pool.Start()
+	go pool.Start(p.API)
 	p.wsPool = pool
 	p.router = p.InitAPI()
 	return nil
