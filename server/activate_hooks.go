@@ -5,7 +5,7 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	// Initialize DB service
+	// Initialize the router
 	p.router = p.InitAPI()
 	return nil
 }

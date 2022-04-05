@@ -20,7 +20,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	p.handleStaticFiles(r)
 	s := r.PathPrefix("/api/v1").Subrouter()
 
-	// TODO: Remove the API on the top as it is unnecessary
+	// TODO: Remove the GetStatusByEmail API as it is unnecessary
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
 
@@ -33,46 +33,46 @@ func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	email := params["email"]
 	if !model.IsValidEmail(email) {
-		p.logAndReturnError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
+		p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
 		return
 	}
 
 	user, userErr := p.API.GetUserByEmail(email)
 	if userErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get user with email %s. Error: %v", email, userErr.Error()), userErr.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %v", email, userErr.Error()), userErr.StatusCode)
 		return
 	}
 
 	status, err := p.API.GetUserStatus(user.Id)
 	if err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %v", user.Id, err.Error()), err.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %v", user.Id, err.Error()), err.StatusCode)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response, respErr := status.ToJSON()
 	if respErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %v", respErr.Error()), http.StatusInternalServerError)
+		p.writeError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %v", respErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(response); err != nil {
-		p.logAndReturnError(w, err.Error(), http.StatusInternalServerError)
+		p.writeError(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 	users := serializer.UsersFromJson(r.Body)
-	userIds := make([]string, 0)
+	userIds := make([]string, len(users.Emails))
 	for _, email := range users.Emails {
 		if !model.IsValidEmail(email) {
-			p.logAndReturnError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
+			p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
 			return
 		}
 
 		user, userErr := p.API.GetUserByEmail(email)
 		if userErr != nil {
-			p.logAndReturnError(w, fmt.Sprintf("Unable to get user with email %s. Error: %v", email, userErr.Error()), userErr.StatusCode)
+			p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %v", email, userErr.Error()), userErr.StatusCode)
 			return
 		}
 
@@ -81,23 +81,23 @@ func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 
 	statuses, err := p.API.GetUserStatusesByIds(userIds)
 	if err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get users' statuses. Error: %v", err.Error()), err.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get users' statuses. Error: %v", err.Error()), err.StatusCode)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response, respErr := json.Marshal(statuses)
 	if respErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to convert users' statuses to JSON. Error: %v", respErr.Error()), http.StatusInternalServerError)
+		p.writeError(w, fmt.Sprintf("Unable to marshal users' statuses. Error: %v", respErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	if _, wErr := w.Write(response); wErr != nil {
-		p.logAndReturnError(w, wErr.Error(), http.StatusInternalServerError)
+		p.writeError(w, wErr.Error(), http.StatusInternalServerError)
 	}
 }
 
-func (p *Plugin) logAndReturnError(w http.ResponseWriter, errorMessage string, statusCode int) {
+func (p *Plugin) writeError(w http.ResponseWriter, errorMessage string, statusCode int) {
 	p.API.LogError(errorMessage)
 	http.Error(w, errorMessage, statusCode)
 }
