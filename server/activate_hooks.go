@@ -7,10 +7,10 @@ func (p *Plugin) OnActivate() error {
 		return err
 	}
 
-	// Initialize DB service
+	// Initialize the router and websocket pool
+	p.router = p.InitAPI()
 	pool := websocket.NewPool()
 	go pool.Start(p.API)
 	p.wsPool = pool
-	p.router = p.InitAPI()
 	return nil
 }

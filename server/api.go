@@ -23,7 +23,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 
 	// Add the custom plugin routes here
 	s.HandleFunc("/status/publish", p.PublishStatusChanged).Methods(http.MethodPost)
-	// TODO: Remove the API below as it is unnecessary
+	// TODO: Remove the GetStatusByEmail API as it is unnecessary
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
 	s.HandleFunc("/ws", p.serveWebSocket)
@@ -52,18 +52,18 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	statusChangedEvent, err := serializer.StatusChangedEventFromJson(r.Body)
 	if err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
+		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
 	if err = statusChangedEvent.PrePublish(); err != nil {
-		p.logAndReturnError(w, err.Error(), http.StatusBadRequest)
+		p.writeError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
 	user, userErr := p.API.GetUser(statusChangedEvent.UserID)
 	if userErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get user by id %s. Error: %s", statusChangedEvent.UserID, userErr.Error()), userErr.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get user by id %s. Error: %s", statusChangedEvent.UserID, userErr.Error()), userErr.StatusCode)
 		return
 	}
 
@@ -76,50 +76,50 @@ func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 	email := params["email"]
 	if !model.IsValidEmail(email) {
-		p.logAndReturnError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
+		p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
 		return
 	}
 
 	user, userErr := p.API.GetUserByEmail(email)
 	if userErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
 		return
 	}
 
 	status, err := p.API.GetUserStatus(user.Id)
 	if err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %s", user.Id, err.Error()), err.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %s", user.Id, err.Error()), err.StatusCode)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response, respErr := status.ToJSON()
 	if respErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
+		p.writeError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	if _, err := w.Write(response); err != nil {
-		p.logAndReturnError(w, err.Error(), http.StatusInternalServerError)
+		p.writeError(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 	var emails []string
 	if err := json.NewDecoder(r.Body).Decode(&emails); err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
+		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 	userIds := make([]string, len(emails))
 	for _, email := range emails {
 		if !model.IsValidEmail(email) {
-			p.logAndReturnError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
+			p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
 			return
 		}
 
 		user, userErr := p.API.GetUserByEmail(email)
 		if userErr != nil {
-			p.logAndReturnError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
+			p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
 			return
 		}
 
@@ -128,19 +128,19 @@ func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 
 	statuses, err := p.API.GetUserStatusesByIds(userIds)
 	if err != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to get users' statuses. Error: %s", err.Error()), err.StatusCode)
+		p.writeError(w, fmt.Sprintf("Unable to get users' statuses. Error: %s", err.Error()), err.StatusCode)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	response, respErr := json.Marshal(statuses)
 	if respErr != nil {
-		p.logAndReturnError(w, fmt.Sprintf("Unable to convert users' statuses to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
+		p.writeError(w, fmt.Sprintf("Unable to convert users' statuses to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	if _, wErr := w.Write(response); wErr != nil {
-		p.logAndReturnError(w, wErr.Error(), http.StatusInternalServerError)
+		p.writeError(w, wErr.Error(), http.StatusInternalServerError)
 	}
 }
 
@@ -152,7 +152,7 @@ func writeStatusOK(w http.ResponseWriter) {
 	_, _ = w.Write([]byte(model.MapToJSON(m)))
 }
 
-func (p *Plugin) logAndReturnError(w http.ResponseWriter, errorMessage string, statusCode int) {
+func (p *Plugin) writeError(w http.ResponseWriter, errorMessage string, statusCode int) {
 	p.API.LogError(errorMessage)
 	http.Error(w, errorMessage, statusCode)
 }
