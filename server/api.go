@@ -20,8 +20,8 @@ func (p *Plugin) InitAPI() *mux.Router {
 	p.handleStaticFiles(r)
 	s := r.PathPrefix("/api/v1").Subrouter()
 
-	// TODO: Remove the GetStatusByEmail API as it is unnecessary
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
+	// TODO: TODO: Remove the GetStatusesByEmails API as it is unnecessary
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
 
 	// 404 handler
@@ -95,11 +95,6 @@ func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 	if _, wErr := w.Write(response); wErr != nil {
 		p.writeError(w, wErr.Error(), http.StatusInternalServerError)
 	}
-}
-
-func (p *Plugin) writeError(w http.ResponseWriter, errorMessage string, statusCode int) {
-	p.API.LogError(errorMessage)
-	http.Error(w, errorMessage, statusCode)
 }
 
 // handleStaticFiles handles the static files under the assets directory.
