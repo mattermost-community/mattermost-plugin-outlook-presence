@@ -23,8 +23,8 @@ func (p *Plugin) InitAPI() *mux.Router {
 
 	// Add the custom plugin routes here
 	s.HandleFunc("/status/publish", p.PublishStatusChanged).Methods(http.MethodPost)
-	// TODO: Remove the GetStatusByEmail API as it is unnecessary
 	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
+	// TODO: TODO: Remove the GetStatusesByEmails API as it is unnecessary
 	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
 	s.HandleFunc("/ws", p.serveWebSocket)
 
@@ -142,19 +142,6 @@ func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
 	if _, wErr := w.Write(response); wErr != nil {
 		p.writeError(w, wErr.Error(), http.StatusInternalServerError)
 	}
-}
-
-func writeStatusOK(w http.ResponseWriter) {
-	w.Header().Set("Content-Type", "application/json")
-	m := map[string]string{
-		model.STATUS: model.StatusOk,
-	}
-	_, _ = w.Write([]byte(model.MapToJSON(m)))
-}
-
-func (p *Plugin) writeError(w http.ResponseWriter, errorMessage string, statusCode int) {
-	p.API.LogError(errorMessage)
-	http.Error(w, errorMessage, statusCode)
 }
 
 // handleStaticFiles handles the static files under the assets directory.
