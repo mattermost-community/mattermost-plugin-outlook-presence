@@ -27,9 +27,13 @@ export default class Client {
         });
     }
 
+    getStatusRoute() {
+        return `${this.pluginApiUrl}/status`;
+    }
+
     postStatusChanged = (data: StatusChangedEvent) => {
         const {userId, status} = data;
-        return this.doPost(`${this.pluginApiUrl}/status/publish`, {
+        return this.doPost(`${this.getStatusRoute()}/publish`, {
             user_id: userId,
             status,
         });

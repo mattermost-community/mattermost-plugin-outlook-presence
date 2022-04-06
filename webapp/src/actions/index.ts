@@ -9,8 +9,6 @@ const receivedStatusChangedEvent = (data: any): ActionFunc => {
             userId: data.user_id,
             status: data.status,
         }).catch((err: any) => {
-            // eslint-disable-next-line
-            console.log(err);
             dispatch(logError(err));
         });
 

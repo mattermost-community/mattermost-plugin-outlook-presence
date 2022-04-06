@@ -12,5 +12,6 @@ func (p *Plugin) OnActivate() error {
 	pool := websocket.NewPool()
 	go pool.Start(p.API)
 	p.wsPool = pool
+
 	return nil
 }
