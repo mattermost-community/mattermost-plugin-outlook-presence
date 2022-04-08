@@ -28,10 +28,10 @@ func (p *Pool) Start(api plugin.API) {
 		select {
 		case client := <-p.Register:
 			p.Clients[client] = true
-			api.LogInfo(fmt.Sprintf("Size of connection pool: %d", len(p.Clients)))
+			api.LogInfo(fmt.Sprintf("Client added. Size of connection pool: %d", len(p.Clients)))
 		case client := <-p.Unregister:
 			delete(p.Clients, client)
-			api.LogInfo(fmt.Sprintf("Size of connection pool: %d", len(p.Clients)))
+			api.LogInfo(fmt.Sprintf("Client removed. Size of connection pool: %d", len(p.Clients)))
 		case statusChangedEvent := <-p.Broadcast:
 			api.LogInfo("Sending message to all clients in pool")
 			for client, _ := range p.Clients {
