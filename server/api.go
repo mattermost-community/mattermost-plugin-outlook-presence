@@ -37,8 +37,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 func (p *Plugin) handleAuthRequired(handleFunc func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if status, err := verifyHTTPSecret(p.getConfiguration().Secret, r.FormValue("secret")); err != nil {
-			p.API.LogError(fmt.Sprintf("Invalid Secret. Error: %v", err.Error()))
-			http.Error(w, err.Error(), status)
+			p.writeError(w, fmt.Sprintf("Invalid Secret. Error: %s", err.Error()), status)
 			return
 		}
 

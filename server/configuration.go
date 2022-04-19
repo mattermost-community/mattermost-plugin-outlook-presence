@@ -36,7 +36,7 @@ func (c *configuration) ProcessConfiguration() error {
 	return nil
 }
 
-// IsValid checks if all needed fields are set.
+// IsValid checks if all the required fields are set.
 func (c *configuration) IsValid() error {
 	if len(c.Secret) == 0 {
 		return errors.New("please generate secret from the plugin system console settings")
@@ -96,7 +96,6 @@ func (p *Plugin) OnConfigurationChange() error {
 	}
 
 	if err := configuration.ProcessConfiguration(); err != nil {
-		p.API.LogError("Error in ProcessConfiguration.", "Error", err.Error())
 		return errors.Wrap(err, "failed to process configuration")
 	}
 
