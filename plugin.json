@@ -19,6 +19,15 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "Secret",
+                "display_name": "Webhook Secret:",
+                "type": "generated",
+                "help_text": "The webhook secret set in the presence provider COM server interacting with Outlook.",
+                "regenerate_help_text": "Regenerates the secret for Outlook Presence Provider Plugin. Regenerating this key invalidates any existing token.",
+                "default": null
+            }
+        ]
     }
 }

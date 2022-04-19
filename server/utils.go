@@ -1,9 +1,12 @@
 package main
 
 import (
+	"crypto/subtle"
 	"net/http"
+	"net/url"
 
 	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/pkg/errors"
 )
 
 func (p *Plugin) writeError(w http.ResponseWriter, errorMessage string, statusCode int) {
@@ -17,4 +20,21 @@ func writeStatusOK(w http.ResponseWriter) {
 		model.STATUS: model.StatusOk,
 	}
 	_, _ = w.Write([]byte(model.MapToJSON(m)))
+}
+
+// Ref: mattermost plugin confluence(https://github.com/mattermost/mattermost-plugin-confluence/blob/3ee2aa149b6807d14fe05772794c04448a17e8be/server/controller/main.go#L97)
+func verifyHTTPSecret(expected, got string) (status int, err error) {
+	for {
+		if subtle.ConstantTimeCompare([]byte(got), []byte(expected)) == 1 {
+			break
+		}
+
+		unescaped, _ := url.QueryUnescape(got)
+		if unescaped == got {
+			return http.StatusForbidden, errors.New("request URL: secret did not match")
+		}
+		got = unescaped
+	}
+
+	return 0, nil
 }

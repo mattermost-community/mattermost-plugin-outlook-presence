@@ -23,14 +23,26 @@ func (p *Plugin) InitAPI() *mux.Router {
 
 	// Add the custom plugin routes here
 	s.HandleFunc("/status/publish", p.PublishStatusChanged).Methods(http.MethodPost)
-	s.HandleFunc("/status/{email}", p.GetStatusByEmail).Methods(http.MethodGet)
+	s.HandleFunc("/status/{email}", p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
 	// TODO: TODO: Remove the GetStatusesByEmails API as it is unnecessary
-	s.HandleFunc("/statuses", p.GetStatusesByEmails).Methods(http.MethodPost)
-	s.HandleFunc("/ws", p.serveWebSocket)
+	s.HandleFunc("/statuses", p.handleAuthRequired(p.GetStatusesByEmails)).Methods(http.MethodPost)
+	s.HandleFunc("/ws", p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
 	r.Handle("{anything:.*}", http.NotFoundHandler())
 	return r
+}
+
+// handleAuthRequired verifies if provided request is performed by an authorized source.
+func (p *Plugin) handleAuthRequired(handleFunc func(w http.ResponseWriter, r *http.Request)) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if status, err := verifyHTTPSecret(p.getConfiguration().Secret, r.FormValue("secret")); err != nil {
+			p.writeError(w, fmt.Sprintf("Invalid Secret. Error: %s", err.Error()), status)
+			return
+		}
+
+		handleFunc(w, r)
+	}
 }
 
 func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
