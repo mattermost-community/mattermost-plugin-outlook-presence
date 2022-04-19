@@ -1,10 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"sync"
 
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
+	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
@@ -18,11 +19,14 @@ type Plugin struct {
 	// configuration is the active plugin configuration. Consult getConfiguration and
 	// setConfiguration for usage.
 	configuration *configuration
+	router        *mux.Router
+	wsPool        *websocket.Pool
 }
 
-// ServeHTTP demonstrates a plugin that handles HTTP requests by greeting the world.
+// ServeHTTP handles HTTP requests
 func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Request) {
-	fmt.Fprint(w, "Hello, world!")
+	p.API.LogDebug("New plugin request:", "Host", r.Host, "RequestURI", r.RequestURI, "Method", r.Method)
+	p.router.ServeHTTP(w, r)
 }
 
 // See https://developers.mattermost.com/extend/plugins/server/reference/
