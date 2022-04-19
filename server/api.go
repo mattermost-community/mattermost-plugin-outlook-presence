@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/constants"
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
@@ -22,11 +23,10 @@ func (p *Plugin) InitAPI() *mux.Router {
 	s := r.PathPrefix("/api/v1").Subrouter()
 
 	// Add the custom plugin routes here
-	s.HandleFunc("/status/publish", p.PublishStatusChanged).Methods(http.MethodPost)
-	s.HandleFunc("/status/{email}", p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
-	// TODO: TODO: Remove the GetStatusesByEmails API as it is unnecessary
-	s.HandleFunc("/statuses", p.handleAuthRequired(p.GetStatusesByEmails)).Methods(http.MethodPost)
-	s.HandleFunc("/ws", p.handleAuthRequired(p.serveWebSocket))
+	s.HandleFunc(constants.PublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
+	s.HandleFunc(constants.GetStatusByEmail, p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
+	s.HandleFunc(constants.GetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
+	s.HandleFunc(constants.Websocket, p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
 	r.Handle("{anything:.*}", http.NotFoundHandler())
@@ -63,7 +63,7 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
-	statusChangedEvent, err := serializer.StatusChangedEventFromJson(r.Body)
+	statusChangedEvent, err := serializer.UserStatusFromJson(r.Body)
 	if err != nil {
 		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
 		return
@@ -117,36 +117,42 @@ func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (p *Plugin) GetStatusesByEmails(w http.ResponseWriter, r *http.Request) {
-	var emails []string
-	if err := json.NewDecoder(r.Body).Decode(&emails); err != nil {
-		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
-		return
-	}
-	userIds := make([]string, len(emails))
-	for _, email := range emails {
-		if !model.IsValidEmail(email) {
-			p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
-			return
-		}
-
-		user, userErr := p.API.GetUserByEmail(email)
-		if userErr != nil {
-			p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
-			return
-		}
-
-		userIds = append(userIds, user.Id)
-	}
-
-	statuses, err := p.API.GetUserStatusesByIds(userIds)
+func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) {
+	page, err := parseInt(r.URL, constants.Page, constants.DefaultPage)
 	if err != nil {
-		p.writeError(w, fmt.Sprintf("Unable to get users' statuses. Error: %s", err.Error()), err.StatusCode)
+		p.writeError(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+
+	users, userErr := p.API.GetUsers(&model.UserGetOptions{
+		Active:  true,
+		Page:    page,
+		PerPage: p.getConfiguration().PerPageStatuses,
+	})
+	if userErr != nil {
+		p.writeError(w, fmt.Sprintf("failed to get users. Error: %s", userErr.Error()), userErr.StatusCode)
+		return
+	}
+
+	userStatusArr := make([]*serializer.UserStatus, len(users))
+	for index, user := range users {
+		userStatus := serializer.UserStatus{
+			UserID: user.Id,
+			Email:  user.Email,
+			Status: model.StatusOffline,
+		}
+
+		status, statusErr := p.API.GetUserStatus(user.Id)
+		if statusErr != nil {
+			p.API.LogError("unable to get the status of user.", "email", user.Email, "error", statusErr.Error())
+		} else {
+			userStatus.Status = status.Status
+		}
+		userStatusArr[index] = &userStatus
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	response, respErr := json.Marshal(statuses)
+	response, respErr := json.Marshal(userStatusArr)
 	if respErr != nil {
 		p.writeError(w, fmt.Sprintf("Unable to convert users' statuses to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
 		return

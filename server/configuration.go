@@ -19,7 +19,8 @@ import (
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
 type configuration struct {
-	Secret string `json:"Secret"`
+	Secret          string `json:"Secret"`
+	PerPageStatuses int    `json:"PerPageStatuses"`
 }
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
@@ -40,6 +41,10 @@ func (c *configuration) ProcessConfiguration() error {
 func (c *configuration) IsValid() error {
 	if len(c.Secret) == 0 {
 		return errors.New("please generate secret from the plugin system console settings")
+	}
+
+	if c.PerPageStatuses <= 0 {
+		return errors.New("please enter a valid value for the status response page size")
 	}
 
 	return nil

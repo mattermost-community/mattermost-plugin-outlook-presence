@@ -15,21 +15,21 @@ var validStatus = map[string]bool{
 	model.StatusOffline: true,
 }
 
-type StatusChangedEvent struct {
+type UserStatus struct {
 	UserID string `json:"user_id"`
 	Email  string `json:"email"`
 	Status string `json:"status"`
 }
 
-func StatusChangedEventFromJson(data io.Reader) (*StatusChangedEvent, error) {
-	var s *StatusChangedEvent
+func UserStatusFromJson(data io.Reader) (*UserStatus, error) {
+	var s *UserStatus
 	if err := json.NewDecoder(data).Decode(&s); err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-func (s *StatusChangedEvent) PrePublish() error {
+func (s *UserStatus) PrePublish() error {
 	if !model.IsValidId(s.UserID) {
 		return fmt.Errorf("user id is not valid")
 	}

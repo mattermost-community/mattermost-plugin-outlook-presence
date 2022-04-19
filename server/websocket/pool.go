@@ -11,7 +11,7 @@ type Pool struct {
 	Register   chan *Client
 	Unregister chan *Client
 	Clients    map[*Client]bool
-	Broadcast  chan *serializer.StatusChangedEvent
+	Broadcast  chan *serializer.UserStatus
 }
 
 func NewPool() *Pool {
@@ -19,7 +19,7 @@ func NewPool() *Pool {
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan *serializer.StatusChangedEvent),
+		Broadcast:  make(chan *serializer.UserStatus),
 	}
 }
 
@@ -33,6 +33,10 @@ func (p *Pool) Start(api plugin.API) {
 			delete(p.Clients, client)
 			api.LogInfo(fmt.Sprintf("Client removed. Size of connection pool: %d", len(p.Clients)))
 		case statusChangedEvent := <-p.Broadcast:
+			if len(p.Clients) == 0 {
+				api.LogInfo("No clients connected to send message.")
+				break
+			}
 			api.LogInfo("Sending message to all clients in pool")
 			for client, _ := range p.Clients {
 				if err := client.Conn.WriteJSON(statusChangedEvent); err != nil {
