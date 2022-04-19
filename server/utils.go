@@ -40,7 +40,7 @@ func verifyHTTPSecret(expected, got string) (status int, err error) {
 	return 0, nil
 }
 
-func parseInt(u *url.URL, name string, defaultValue int) (int, error) {
+func parseIntParamFromURL(u *url.URL, name string, defaultValue int) (int, error) {
 	valueStr := u.Query().Get(name)
 	if valueStr == "" {
 		return defaultValue, nil

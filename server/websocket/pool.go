@@ -34,7 +34,7 @@ func (p *Pool) Start(api plugin.API) {
 			api.LogInfo(fmt.Sprintf("Client removed. Size of connection pool: %d", len(p.Clients)))
 		case statusChangedEvent := <-p.Broadcast:
 			if len(p.Clients) == 0 {
-				api.LogInfo("No clients connected to send message.")
+				api.LogInfo("No clients connected.")
 				break
 			}
 			api.LogInfo("Sending message to all clients in pool")

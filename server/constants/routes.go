@@ -1,9 +1,8 @@
 package constants
 
 const (
-	status                 = "/status"
-	GetStatusByEmail       = status + "/{email}"
-	PublishStatusChanged   = status + "/publish"
-	GetStatusesForAllUsers = status
-	Websocket              = "/ws"
+	Status               = "/status"
+	GetStatusByEmail     = Status + "/{email}"
+	PublishStatusChanged = Status + "/publish"
+	Websocket            = "/ws"
 )

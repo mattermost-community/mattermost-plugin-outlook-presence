@@ -25,7 +25,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	// Add the custom plugin routes here
 	s.HandleFunc(constants.PublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
 	s.HandleFunc(constants.GetStatusByEmail, p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
-	s.HandleFunc(constants.GetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
+	s.HandleFunc(constants.Status, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
 	s.HandleFunc(constants.Websocket, p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
@@ -117,7 +117,7 @@ func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) {
-	page, err := parseInt(r.URL, constants.Page, constants.DefaultPage)
+	page, err := parseIntParamFromURL(r.URL, constants.Page, constants.DefaultPage)
 	if err != nil {
 		p.writeError(w, err.Error(), http.StatusBadRequest)
 		return
