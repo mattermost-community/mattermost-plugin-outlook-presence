@@ -24,8 +24,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 
 	// Add the custom plugin routes here
 	s.HandleFunc(constants.PublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
-	s.HandleFunc(constants.GetStatusByEmail, p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
-	s.HandleFunc(constants.Status, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
+	s.HandleFunc(constants.GetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
 	s.HandleFunc(constants.Websocket, p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
@@ -48,7 +47,7 @@ func (p *Plugin) handleAuthRequired(handleFunc func(w http.ResponseWriter, r *ht
 func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 	connection, err := websocket.CreateConnection(w, r)
 	if err != nil {
-		p.API.LogError("error in creating websocket connection", "Error", err.Error())
+		p.writeError(w, fmt.Sprintf("error in creating websocket connection. Error: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -82,38 +81,6 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	statusChangedEvent.Email = user.Email
 	p.wsPool.Broadcast <- statusChangedEvent
 	writeStatusOK(w)
-}
-
-func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
-	params := mux.Vars(r)
-	email := params["email"]
-	if !model.IsValidEmail(email) {
-		p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
-		return
-	}
-
-	user, userErr := p.API.GetUserByEmail(email)
-	if userErr != nil {
-		p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
-		return
-	}
-
-	status, err := p.API.GetUserStatus(user.Id)
-	if err != nil {
-		p.writeError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %s", user.Id, err.Error()), err.StatusCode)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	response, respErr := status.ToJSON()
-	if respErr != nil {
-		p.writeError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
-		return
-	}
-
-	if _, err := w.Write(response); err != nil {
-		p.writeError(w, err.Error(), http.StatusInternalServerError)
-	}
 }
 
 func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) {
