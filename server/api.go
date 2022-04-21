@@ -101,20 +101,27 @@ func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	userStatusArr := make([]*serializer.UserStatus, len(users))
+	userIds := make([]string, len(users))
+	statusMap := make(map[string]*serializer.UserStatus)
 	for index, user := range users {
+		userIds[index] = user.Id
 		userStatus := serializer.UserStatus{
 			UserID: user.Id,
 			Email:  user.Email,
 			Status: model.StatusOffline,
 		}
+		statusMap[user.Id] = &userStatus
+	}
 
-		status, statusErr := p.API.GetUserStatus(user.Id)
-		if statusErr != nil {
-			p.API.LogError("unable to get the status of user.", "email", user.Email, "error", statusErr.Error())
-		} else {
-			userStatus.Status = status.Status
-		}
-		userStatusArr[index] = &userStatus
+	statusArr, statusErr := p.API.GetUserStatusesByIds(userIds)
+	if err != nil {
+		p.writeError(w, fmt.Sprintf("error in getting statuses. Error: %s", statusErr.Error()), statusErr.StatusCode)
+		return
+	}
+
+	for index, status := range statusArr {
+		statusMap[status.UserId].Status = status.Status
+		userStatusArr[index] = statusMap[status.UserId]
 	}
 
 	w.Header().Set("Content-Type", "application/json")
