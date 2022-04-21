@@ -21,7 +21,7 @@ type UserStatus struct {
 	Status string `json:"status"`
 }
 
-func UserStatusFromJson(data io.Reader) (*UserStatus, error) {
+func UserStatusFromJSON(data io.Reader) (*UserStatus, error) {
 	var s *UserStatus
 	if err := json.NewDecoder(data).Decode(&s); err != nil {
 		return nil, err

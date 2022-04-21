@@ -61,7 +61,7 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 }
 
 func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
-	statusChangedEvent, err := serializer.UserStatusFromJson(r.Body)
+	statusChangedEvent, err := serializer.UserStatusFromJSON(r.Body)
 	if err != nil {
 		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
 		return
@@ -114,7 +114,7 @@ func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	statusArr, statusErr := p.API.GetUserStatusesByIds(userIds)
-	if err != nil {
+	if statusErr != nil {
 		p.writeError(w, fmt.Sprintf("error in getting statuses. Error: %s", statusErr.Error()), statusErr.StatusCode)
 		return
 	}
