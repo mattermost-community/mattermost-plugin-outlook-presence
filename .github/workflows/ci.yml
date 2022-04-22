@@ -8,7 +8,7 @@ on:
   pull_request:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   ci:
@@ -39,6 +39,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
+
       - name: Cache node modules
         uses: actions/cache@v2
         with:
@@ -46,6 +47,7 @@ jobs:
           key: ${{ runner.os }}-node-${{ hashFiles('**/package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-node-
+
       - name: Install webapp dependencies
         run: make webapp/node_modules
         env:
@@ -61,7 +63,7 @@ jobs:
         env:
           TERM: dumb
 
-      - name: build and bundle the plugin
+      - name: Build and bundle the plugin
         id: build
         run: |
           make dist
