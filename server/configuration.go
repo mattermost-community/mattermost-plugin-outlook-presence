@@ -44,7 +44,7 @@ func (c *configuration) IsValid() error {
 	}
 
 	if c.PerPageStatuses <= 0 {
-		return errors.New("please enter a valid value for the status response page size")
+		return errors.New("please enter a value greater than 0 for the status response page size")
 	}
 
 	return nil
