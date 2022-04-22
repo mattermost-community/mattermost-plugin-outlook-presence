@@ -23,9 +23,9 @@ func (p *Plugin) InitAPI() *mux.Router {
 	s := r.PathPrefix("/api/v1").Subrouter()
 
 	// Add the custom plugin routes here
-	s.HandleFunc(constants.PublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
-	s.HandleFunc(constants.GetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
-	s.HandleFunc(constants.Websocket, p.handleAuthRequired(p.serveWebSocket))
+	s.HandleFunc(constants.PathPublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
+	s.HandleFunc(constants.PathGetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
+	s.HandleFunc(constants.PathWebsocket, p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
 	r.Handle("{anything:.*}", http.NotFoundHandler())
@@ -102,15 +102,10 @@ func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) 
 
 	userStatusArr := make([]*serializer.UserStatus, len(users))
 	userIds := make([]string, len(users))
-	statusMap := make(map[string]*serializer.UserStatus)
+	userIDEmailMap := make(map[string]string)
 	for index, user := range users {
 		userIds[index] = user.Id
-		userStatus := serializer.UserStatus{
-			UserID: user.Id,
-			Email:  user.Email,
-			Status: model.StatusOffline,
-		}
-		statusMap[user.Id] = &userStatus
+		userIDEmailMap[user.Id] = user.Email
 	}
 
 	statusArr, statusErr := p.API.GetUserStatusesByIds(userIds)
@@ -120,8 +115,11 @@ func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) 
 	}
 
 	for index, status := range statusArr {
-		statusMap[status.UserId].Status = status.Status
-		userStatusArr[index] = statusMap[status.UserId]
+		userStatusArr[index] = &serializer.UserStatus{
+			UserID: status.UserId,
+			Email:  userIDEmailMap[status.UserId],
+			Status: status.Status,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

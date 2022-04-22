@@ -1,7 +1,7 @@
 package constants
 
 const (
-	GetStatusesForAllUsers = "/status"
-	PublishStatusChanged   = "/status/publish"
-	Websocket              = "/ws"
+	PathGetStatusesForAllUsers = "/status"
+	PathPublishStatusChanged   = "/status/publish"
+	PathWebsocket              = "/ws"
 )
