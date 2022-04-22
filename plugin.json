@@ -27,6 +27,13 @@
                 "help_text": "The webhook secret set in the presence provider COM server interacting with Outlook.",
                 "regenerate_help_text": "Regenerates the secret for Outlook Presence Provider Plugin. Regenerating this key invalidates any existing token.",
                 "default": null
+            },
+            {
+                "key": "PerPageStatuses",
+                "display_name": "Status response page size",
+                "type": "number",
+                "help_text": "The number of statuses to return on a single page in response to any API returning multiple statuses.",
+                "default": 100
             }
         ]
     }

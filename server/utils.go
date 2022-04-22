@@ -4,6 +4,7 @@ import (
 	"crypto/subtle"
 	"net/http"
 	"net/url"
+	"strconv"
 
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/pkg/errors"
@@ -37,4 +38,18 @@ func verifyHTTPSecret(expected, got string) (status int, err error) {
 	}
 
 	return 0, nil
+}
+
+func parseIntParamFromURL(u *url.URL, name string, defaultValue int) (int, error) {
+	valueStr := u.Query().Get(name)
+	if valueStr == "" {
+		return defaultValue, nil
+	}
+
+	value, err := strconv.Atoi(valueStr)
+	if err != nil {
+		return 0, errors.Wrapf(err, "failed to parse %s as integer", name)
+	}
+
+	return value, nil
 }
