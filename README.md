@@ -1,52 +1,53 @@
-# mattermost-plugin-outlook-presence
+# Mattermost Plugin Outlook Presence
 
-This plugin serves as a starting point for writing a Mattermost plugin. Feel free to base your own plugin off this repository.
+This plugin is used for getting status updates for users. It adds an additional websocket endpoint to the Mattermost server which can be connected to without an active user's valid token. It also exposes a new paginated API to get the statuses of all users along with their emails. The purpose of this plugin is to provide status updates to Microsoft Outlook through the use of an intermediary [IM app](https://github.com/Brightscout/mattermost-outlook-presence-provider). To know more about how to integrate an application with Outlook, you can read the [official docs](https://docs.microsoft.com/en-us/office/client-developer/shared/integrating-im-applications-with-office). (This plugin can be used with any third-party application that wants to subscribe to Mattermost users' status updates.)
 
-To learn more about plugins, see [our plugin documentation](https://developers.mattermost.com/extend/plugins/).
+## Installation
 
-## Getting Started
-Use GitHub's template feature to make a copy of this repository by clicking the "Use this template" button.
+1. You can get the latest version on the [releases page](https://github.com/Brightscout/mattermost-plugin-outlook-presence/releases).
+1. Upload this file in the Mattermost **System Console > Plugins > Management** page to install the plugin. To learn more about how to upload a plugin, [see the documentation](https://docs.mattermost.com/administration/plugins.html#custom-plugins).
+1. After installing the plugin, you should go to the plugin's settings in System Console and set the Webhook Secret (more about this below).
 
-Alternatively shallow clone the repository matching your plugin name:
+### System Console Settings
+
+- **Webhook Secret**:
+  Setting a webhook secret allows you to ensure that the requests sent to the payload URL are from the Office IM app (or any other client app), and is used with every request that is made from the IM app to Mattermost.
+
+ - **Status response page size**
+  This setting is for the paginated API exposed by the plugin to get the statuses of all users. It basically denotes the number of statuses to return on a single page of the API request.
+
+## Features
+The plugin adds two endpoints to the Mattermost server which both require authentication using the webhook secret in the plugin configuration settings.
+
+- **GetStatusForAllUsers endpoint**: `/status` is the endpoint which can be used to get the statuses for all **active** users present in Mattermost. The request must contain the `webhook secret` in a query param called `secret` or in form data. It accepts another query param called `page` whose default value is `0`. If a page does not contain any users, then the endpoint returns an empty array. Also, if there's no record of a user's status in the Mattermost database (in the case of bots and users who have just signed up), then this endpoint returns their status as "offline".
+
+- **Websocket endpoint**: `/ws` is the endpoint through which you can connect to the websocket. This plugin adds server logs whenever a new client is connected/disconnected along with the current size of the websocket connection pool. This endpoint also requires the `secret` query param for authentication.
+
+You can make a request to both these endpoints using the base url as - 
 ```
-git clone --depth 1 https://github.com/mattermost/mattermost-plugin-starter-template com.example.my-plugin
-```
-
-Note that this project uses [Go modules](https://github.com/golang/go/wiki/Modules). Be sure to locate the project outside of `$GOPATH`.
-
-Edit the following files:
-1. `plugin.json` with your `id`, `name`, and `description`:
-```
-{
-    "id": "com.example.my-plugin",
-    "name": "My Plugin",
-    "description": "A plugin to enhance Mattermost."
-}
-```
-
-2. `go.mod` with your Go module path, following the `<hosting-site>/<repository>/<module>` convention:
-```
-module github.com/example/my-plugin
-```
-
-3. `.golangci.yml` with your Go module path:
-```yml
-linters-settings:
-  # [...]
-  goimports:
-    local-prefixes: github.com/example/my-plugin
+{MATTERMOST_SERVER_URL}/plugins/com.mattermost.outlook-presence/api/v1
 ```
 
-Build your plugin:
-```
-make
-```
+## Building the plugin
 
-This will produce a single plugin file (with support for multiple architectures) for upload to your Mattermost server:
+- Make sure you have following components installed:
+    - Go - v1.16 - [Getting Started](https://golang.org/doc/install)
+      > **Note:** If you have installed Go to a custom location, make sure the `$GOROOT` variable is set properly. Refer [Installing to a custom location](https://golang.org/doc/install#install).
+    - NodeJS - v14.17 and NPM - [Downloading and installing Node.js and npm](https://docs.npmjs.com/getting-started/installing-node).
+    - Make
 
-```
-dist/com.example.my-plugin.tar.gz
-```
+- Note that this project uses [Go modules](https://github.com/golang/go/wiki/Modules). Be sure to locate the project outside of `$GOPATH`.
+To learn more about plugins, see [plugin documentation](https://developers.mattermost.com/extend/plugins/).
+
+- Build your plugin:
+    ```
+    make dist
+    ```
+
+- This will produce a single plugin file (with support for multiple architectures) for upload to your Mattermost server:
+    ```
+    dist/com.mattermost.outlook-presence-x.y.z.tar.gz
+    ```
 
 ## Development
 
@@ -84,13 +85,6 @@ export MM_LOCALSOCKETPATH=/var/tmp/alternate_local.socket
 make deploy
 ```
 
-If developing a plugin with a webapp, watch for changes and deploy those automatically:
-```
-export MM_SERVICESETTINGS_SITEURL=http://localhost:8065
-export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
-make watch
-```
-
 ### Deploying with credentials
 
 Alternatively, you can authenticate with the server's API with credentials:
@@ -108,31 +102,4 @@ export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
 make deploy
 ```
 
-## Q&A
-
-### How do I make a server-only or web app-only plugin?
-
-Simply delete the `server` or `webapp` folders and remove the corresponding sections from `plugin.json`. The build scripts will skip the missing portions automatically.
-
-### How do I include assets in the plugin bundle?
-
-Place them into the `assets` directory. To use an asset at runtime, build the path to your asset and open as a regular file:
-
-```go
-bundlePath, err := p.API.GetBundlePath()
-if err != nil {
-    return errors.Wrap(err, "failed to get bundle path")
-}
-
-profileImage, err := ioutil.ReadFile(filepath.Join(bundlePath, "assets", "profile_image.png"))
-if err != nil {
-    return errors.Wrap(err, "failed to read profile image")
-}
-
-if appErr := p.API.SetProfileImage(userID, profileImage); appErr != nil {
-    return errors.Wrap(err, "failed to set profile image")
-}
-```
-
-### How do I build the plugin with unminified JavaScript?
-Setting the `MM_DEBUG` environment variable will invoke the debug builds. The simplist way to do this is to simply include this variable in your calls to `make` (e.g. `make dist MM_DEBUG=1`).
+Made with &#9829; by [Brightscout](http://www.brightscout.com)
