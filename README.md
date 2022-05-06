@@ -4,20 +4,22 @@ This plugin is used for getting status updates for users. It adds an additional 
 
 ## Installation
 
-1. You can get the latest version on the [releases page](https://github.com/Brightscout/mattermost-plugin-outlook-presence/releases).
+1. Go to the [releases page of this GitHub repository](https://github.com/Brightscout/mattermost-plugin-outlook-presence/releases) and download the latest release for your Mattermost server.
 1. Upload this file in the Mattermost **System Console > Plugins > Management** page to install the plugin. To learn more about how to upload a plugin, [see the documentation](https://docs.mattermost.com/administration/plugins.html#custom-plugins).
-1. After installing the plugin, you should go to the plugin's settings in System Console and set the Webhook Secret (more about this below).
+1. After installing the plugin, you should go to the plugin's settings in System Console and generate a Webhook Secret (more about this below).
 
-### System Console Settings
+## Configuration
+
+This plugin contains some configuration settings that you must set. You can do that by going to **System Console > Plugins > Outlook Presence**. You can know more about these settings below:
 
 - **Webhook Secret**:
   Setting a webhook secret allows you to ensure that the requests sent to the payload URL are from the Office IM app (or any other client app), and is used with every request that is made from the IM app to Mattermost.
 
  - **Status response page size**
-  This setting is for the paginated API exposed by the plugin to get the statuses of all users. It basically denotes the number of statuses to return on a single page of the API request.
+  This setting is for the paginated APIs exposed by the plugin. It basically denotes the number of statuses to return on a single page of the API request.
 
 ## Features
-The plugin adds two endpoints to the Mattermost server which both require authentication using the webhook secret in the plugin configuration settings.
+This plugin adds two endpoints to the Mattermost server and both require authentication using the webhook secret in the plugin configuration settings.
 
 - **GetStatusForAllUsers endpoint**: `/status` is the endpoint which can be used to get the statuses for all **active** users present in Mattermost. The request must contain the `webhook secret` in a query param called `secret` or in form data. It accepts another query param called `page` whose default value is `0`. If a page does not contain any users, then the endpoint returns an empty array. Also, if there's no record of a user's status in the Mattermost database (in the case of bots and users who have just signed up), then this endpoint returns their status as "offline".
 
@@ -102,4 +104,4 @@ export MM_ADMIN_TOKEN=j44acwd8obn78cdcx7koid4jkr
 make deploy
 ```
 
-Made with &#9829; by [Brightscout](http://www.brightscout.com)
+Made with &#9829; by [Brightscout](https://www.brightscout.com)
