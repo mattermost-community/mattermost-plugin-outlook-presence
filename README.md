@@ -4,7 +4,7 @@ This plugin is used for getting status updates for users. It adds an additional 
 
 ## Prerequisite
 
-This plugin works with a companion Windows binary which integrates with Outlook on each user's desktop. Learn more about the [Mattermost Outlook Presence Provider here](https://github.com/Brightscout/mattermost-outlook-presence-provider).
+This plugin works with a companion Windows binary which integrates with Outlook on each user's desktop. Learn more about the **Mattermost Outlook Presence Provider** [here](https://github.com/Brightscout/mattermost-outlook-presence-provider).
 
 ## Installation
 
