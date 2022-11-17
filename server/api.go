@@ -47,7 +47,7 @@ func (p *Plugin) handleAuthRequired(handleFunc func(w http.ResponseWriter, r *ht
 func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 	connection, err := websocket.CreateConnection(w, r)
 	if err != nil {
-		p.writeError(w, fmt.Sprintf("error in creating websocket connection. Error: %s", err.Error()), http.StatusInternalServerError)
+		p.writeError(w, fmt.Sprintf("Error in creating websocket connection. Error: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
@@ -56,14 +56,14 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 		Pool: p.wsPool,
 	}
 
-	p.wsPool.Register <- client
+	p.RegisterClient(client)
 	client.Read(p.API)
 }
 
 func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	statusChangedEvent, err := serializer.UserStatusFromJSON(r.Body)
 	if err != nil {
-		p.writeError(w, fmt.Sprintf("error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
+		p.writeError(w, fmt.Sprintf("Error in deserializing the request body. Error: %s", err.Error()), http.StatusBadRequest)
 		return
 	}
 
@@ -79,7 +79,25 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statusChangedEvent.Email = user.Email
-	p.wsPool.Broadcast <- statusChangedEvent
+
+	// Broadcasting the event here only works for the current cluster, so to broadcast it for other clusters,
+	// we are publishing a cluster event and that event will be handled by all the other clusters (not the current cluster)
+	p.BroadcastEvent(statusChangedEvent)
+
+	eventBytes, marshalErr := json.Marshal(statusChangedEvent)
+	if marshalErr != nil {
+		p.API.LogDebug("Error in marshaling the \"status changed\" event", "Error", marshalErr.Error())
+		writeStatusOK(w)
+		return
+	}
+
+	if err := p.API.PublishPluginClusterEvent(model.PluginClusterEvent{
+		Id:   constants.ClusterEvent,
+		Data: eventBytes,
+	}, model.PluginClusterEventSendOptions{SendType: model.PluginClusterEventSendTypeReliable}); err != nil {
+		p.API.LogDebug("Error in publishing the event to clusters", "Error", err.Error())
+	}
+
 	writeStatusOK(w)
 }
 
@@ -110,7 +128,7 @@ func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) 
 
 	statusArr, statusErr := p.API.GetUserStatusesByIds(userIds)
 	if statusErr != nil {
-		p.writeError(w, fmt.Sprintf("error in getting statuses. Error: %s", statusErr.Error()), statusErr.StatusCode)
+		p.writeError(w, fmt.Sprintf("Error in getting statuses. Error: %s", statusErr.Error()), statusErr.StatusCode)
 		return
 	}
 

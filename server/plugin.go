@@ -1,11 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"sync"
 
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/constants"
+	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
+	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
@@ -29,4 +33,25 @@ func (p *Plugin) ServeHTTP(c *plugin.Context, w http.ResponseWriter, r *http.Req
 	p.router.ServeHTTP(w, r)
 }
 
-// See https://developers.mattermost.com/extend/plugins/server/reference/
+func (p *Plugin) OnPluginClusterEvent(c *plugin.Context, ev model.PluginClusterEvent) {
+	if ev.Id != constants.ClusterEvent {
+		return
+	}
+
+	var event *serializer.UserStatus
+	if err := json.Unmarshal(ev.Data, &event); err != nil {
+		p.API.LogDebug("Error in unmarshaling the cluster event data", "Error", err.Error())
+		return
+	}
+
+	// Broadcast the event for all the clusters
+	p.BroadcastEvent(event)
+}
+
+func (p *Plugin) RegisterClient(client *websocket.Client) {
+	p.wsPool.Register <- client
+}
+
+func (p *Plugin) BroadcastEvent(event *serializer.UserStatus) {
+	p.wsPool.Broadcast <- event
+}

@@ -40,7 +40,7 @@ func (p *Pool) Start(api plugin.API) {
 			api.LogInfo("Sending message to all clients in pool")
 			for client := range p.Clients {
 				if err := client.Conn.WriteJSON(statusChangedEvent); err != nil {
-					api.LogError("error in broadcasting the status changed event.", "Error", err.Error())
+					api.LogError("Error in broadcasting the status changed event.", "Error", err.Error())
 				}
 			}
 		}
