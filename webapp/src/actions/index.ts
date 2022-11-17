@@ -4,6 +4,7 @@ import {logError} from 'mattermost-redux/actions/errors';
 import Client from 'client';
 
 const receivedStatusChangedEvent = (data: any): ActionFunc => {
+    console.log(data);
     return async (dispatch: DispatchFunc) => {
         Client.postStatusChanged({
             userId: data.user_id,

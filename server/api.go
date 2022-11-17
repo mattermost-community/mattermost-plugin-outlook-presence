@@ -12,6 +12,7 @@ import (
 	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v6/model"
+	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 
 // InitAPI initializes the REST API
@@ -25,6 +26,7 @@ func (p *Plugin) InitAPI() *mux.Router {
 	// Add the custom plugin routes here
 	s.HandleFunc(constants.PathPublishStatusChanged, p.PublishStatusChanged).Methods(http.MethodPost)
 	s.HandleFunc(constants.PathGetStatusesForAllUsers, p.handleAuthRequired(p.GetStatusesForAllUsers)).Methods(http.MethodGet)
+	s.HandleFunc(constants.PathGetStatusByEmail, p.handleAuthRequired(p.GetStatusByEmail)).Methods(http.MethodGet)
 	s.HandleFunc(constants.PathWebsocket, p.handleAuthRequired(p.serveWebSocket))
 
 	// 404 handler
@@ -52,11 +54,11 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &websocket.Client{
-		Conn: connection,
-		Pool: p.wsPool,
+		Conn:   connection,
+		ConnID: model.NewId(),
 	}
 
-	p.wsPool.Register <- client
+	p.RegisterHub(client)
 	client.Read(p.API)
 }
 
@@ -79,8 +81,57 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statusChangedEvent.Email = user.Email
-	p.wsPool.Broadcast <- statusChangedEvent
+	bytes, _ := json.Marshal(&statusChangedEvent)
+	if err := p.API.PublishPluginClusterEvent(model.PluginClusterEvent{
+		Id:   "outlook",
+		Data: bytes,
+	}, model.PluginClusterEventSendOptions{
+		SendType: model.PluginClusterEventSendTypeReliable,
+	}); err != nil {
+		p.API.LogError(err.Error())
+	}
+	p.BroadCastHubs(statusChangedEvent)
 	writeStatusOK(w)
+}
+
+func (p *Plugin) OnPluginClusterEvent(c *plugin.Context, ev model.PluginClusterEvent) {
+	if ev.Id == "outlook" {
+		var m *serializer.UserStatus
+		_ = json.Unmarshal(ev.Data, &m)
+		p.BroadCastHubs(m)
+	}
+}
+
+func (p *Plugin) GetStatusByEmail(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	email := params["email"]
+	if !model.IsValidEmail(email) {
+		p.writeError(w, fmt.Sprintf("email %s is not valid", email), http.StatusBadRequest)
+		return
+	}
+
+	user, userErr := p.API.GetUserByEmail(email)
+	if userErr != nil {
+		p.writeError(w, fmt.Sprintf("Unable to get user with email %s. Error: %s", email, userErr.Error()), userErr.StatusCode)
+		return
+	}
+
+	status, err := p.API.GetUserStatus(user.Id)
+	if err != nil {
+		p.writeError(w, fmt.Sprintf("Unable to get user's status. Id: %s. Error: %s", user.Id, err.Error()), err.StatusCode)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	response, respErr := status.ToJSON()
+	if respErr != nil {
+		p.writeError(w, fmt.Sprintf("Unable to convert user's status to JSON. Error: %s", respErr.Error()), http.StatusInternalServerError)
+		return
+	}
+
+	if _, err := w.Write(response); err != nil {
+		p.writeError(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (p *Plugin) GetStatusesForAllUsers(w http.ResponseWriter, r *http.Request) {

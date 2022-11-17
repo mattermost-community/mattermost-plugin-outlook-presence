@@ -6,13 +6,14 @@ import (
 )
 
 type Client struct {
-	Conn *websocket.Conn
-	Pool *Pool
+	Conn   *websocket.Conn
+	Hub    *Hub
+	ConnID string
 }
 
 func (c *Client) Read(api plugin.API) {
 	defer func() {
-		c.Pool.Unregister <- c
+		c.Hub.Unregister <- c
 		c.Conn.Close()
 	}()
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"hash/maphash"
 	"net/http"
 	"sync"
 
@@ -20,7 +21,8 @@ type Plugin struct {
 	// setConfiguration for usage.
 	configuration *configuration
 	router        *mux.Router
-	wsPool        *websocket.Pool
+	wsHubs        []*websocket.Hub
+	hashSeed      maphash.Seed
 }
 
 // ServeHTTP handles HTTP requests
