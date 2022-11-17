@@ -56,7 +56,7 @@ func (p *Plugin) serveWebSocket(w http.ResponseWriter, r *http.Request) {
 		Pool: p.wsPool,
 	}
 
-	p.wsPool.Register <- client
+	p.RegisterClient(client)
 	client.Read(p.API)
 }
 
@@ -79,7 +79,22 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statusChangedEvent.Email = user.Email
-	p.wsPool.Broadcast <- statusChangedEvent
+	p.BroadcastEvent(statusChangedEvent)
+
+	eventBytes, marshalErr := json.Marshal(statusChangedEvent)
+	if marshalErr != nil {
+		p.API.LogDebug("Error in marshaling the status changed event", "Error", marshalErr.Error())
+		writeStatusOK(w)
+		return
+	}
+
+	if err := p.API.PublishPluginClusterEvent(model.PluginClusterEvent{
+		Id:   constants.ClusterEvent,
+		Data: eventBytes,
+	}, model.PluginClusterEventSendOptions{SendType: model.PluginClusterEventSendTypeReliable}); err != nil {
+		p.API.LogDebug("Error in publishing event to clusters", "Error", err.Error())
+	}
+
 	writeStatusOK(w)
 }
 
