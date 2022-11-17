@@ -79,11 +79,14 @@ func (p *Plugin) PublishStatusChanged(w http.ResponseWriter, r *http.Request) {
 	}
 
 	statusChangedEvent.Email = user.Email
+
+	// Broadcasting the event here only works for the current cluster, so to broadcast it for other clusters,
+	// we are publishing a cluster event and that event will be handled by all the other clusters (not the current cluster)
 	p.BroadcastEvent(statusChangedEvent)
 
 	eventBytes, marshalErr := json.Marshal(statusChangedEvent)
 	if marshalErr != nil {
-		p.API.LogDebug("Error in marshaling the status changed event", "Error", marshalErr.Error())
+		p.API.LogDebug("Error in marshaling the \"status changed\" event", "Error", marshalErr.Error())
 		writeStatusOK(w)
 		return
 	}

@@ -44,6 +44,7 @@ func (p *Plugin) OnPluginClusterEvent(c *plugin.Context, ev model.PluginClusterE
 		return
 	}
 
+	// Broadcast the event for all the clusters
 	p.BroadcastEvent(event)
 }
 
