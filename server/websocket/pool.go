@@ -3,7 +3,7 @@ package websocket
 import (
 	"fmt"
 
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/serializer"
 	"github.com/mattermost/mattermost-server/v6/plugin"
 )
 

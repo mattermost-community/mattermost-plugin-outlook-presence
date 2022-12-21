@@ -1,14 +1,14 @@
 # Mattermost Plugin Outlook Presence
 
-This plugin is used for getting status updates for users. It adds an additional websocket endpoint to the Mattermost server which can be connected to without an active user's valid token. It also exposes a new paginated API to get the statuses of all users along with their emails. The purpose of this plugin is to provide status updates to Microsoft Outlook through the use of an intermediary [IM app](https://github.com/Brightscout/mattermost-outlook-presence-provider). To know more about how to integrate an application with Outlook, you can read the [official docs](https://docs.microsoft.com/en-us/office/client-developer/shared/integrating-im-applications-with-office). (This plugin can be used with any third-party application that wants to subscribe to Mattermost users' status updates.)
+This plugin is used for getting status updates for users. It adds an additional websocket endpoint to the Mattermost server which can be connected to without an active user's valid token. It also exposes a new paginated API to get the statuses of all users along with their emails. The purpose of this plugin is to provide status updates to Microsoft Outlook through the use of an intermediary [IM app](https://github.com/mattermost/mattermost-outlook-presence-provider). To know more about how to integrate an application with Outlook, you can read the [official docs](https://docs.microsoft.com/en-us/office/client-developer/shared/integrating-im-applications-with-office). (This plugin can be used with any third-party application that wants to subscribe to Mattermost users' status updates.)
 
 ## Prerequisite
 
-This plugin works with a companion Windows binary which integrates with Outlook on each user's desktop. Learn more about the **Mattermost Outlook Presence Provider** [here](https://github.com/Brightscout/mattermost-outlook-presence-provider).
+This plugin works with a companion Windows binary which integrates with Outlook on each user's desktop. Learn more about the **Mattermost Outlook Presence Provider** [here](https://github.com/mattermost/mattermost-outlook-presence-provider).
 
 ## Installation
 
-1. Go to the [releases page of this GitHub repository](https://github.com/Brightscout/mattermost-plugin-outlook-presence/releases) and download the latest release for your Mattermost server.
+1. Go to the [releases page of this GitHub repository](https://github.com/mattermost/mattermost-plugin-outlook-presence/releases) and download the latest release for your Mattermost server.
 1. Upload this file in the Mattermost **System Console > Plugins > Management** page to install the plugin. To learn more about how to upload a plugin, [see the documentation](https://docs.mattermost.com/administration/plugins.html#custom-plugins).
 1. After installing the plugin, you should go to the plugin's settings in System Console and generate a Webhook Secret (more about this below).
 

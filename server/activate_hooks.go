@@ -1,6 +1,8 @@
 package main
 
-import "github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
+import (
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/websocket"
+)
 
 func (p *Plugin) OnActivate() error {
 	if err := p.OnConfigurationChange(); err != nil {
