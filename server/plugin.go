@@ -5,12 +5,13 @@ import (
 	"net/http"
 	"sync"
 
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/constants"
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v6/model"
 	"github.com/mattermost/mattermost-server/v6/plugin"
+
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/constants"
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/serializer"
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/websocket"
 )
 
 // Plugin implements the interface expected by the Mattermost server to communicate between the server and plugin processes.

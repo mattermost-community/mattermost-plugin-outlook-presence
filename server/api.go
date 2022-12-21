@@ -7,11 +7,12 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/constants"
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/serializer"
-	"github.com/Brightscout/mattermost-plugin-outlook-presence/server/websocket"
 	"github.com/gorilla/mux"
 	"github.com/mattermost/mattermost-server/v6/model"
+
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/constants"
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/serializer"
+	"github.com/mattermost/mattermost-plugin-outlook-presence/server/websocket"
 )
 
 // InitAPI initializes the REST API
