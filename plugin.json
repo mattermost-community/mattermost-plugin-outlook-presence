@@ -4,17 +4,18 @@
     "description": "This plugin provides presence information to Outlook client application.",
     "homepage_url": "https://github.com/mattermost/mattermost-plugin-outlook-presence",
     "support_url": "https://github.com/mattermost/mattermost-plugin-outlook-presence/issues",
-    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-outlook-presence/releases/tag/v1.0.2",
-    "version": "1.0.2",
+    "release_notes_url": "https://github.com/mattermost/mattermost-plugin-outlook-presence/releases/tag/v1.0.3",
+    "version": "1.0.3",
     "min_server_version": "5.37.0",
     "server": {
         "executables": {
-            "linux-amd64": "server/dist/plugin-linux-amd64",
-            "linux-arm64": "server/dist/plugin-linux-arm64",
             "darwin-amd64": "server/dist/plugin-darwin-amd64",
             "darwin-arm64": "server/dist/plugin-darwin-arm64",
+            "linux-amd64": "server/dist/plugin-linux-amd64",
+            "linux-arm64": "server/dist/plugin-linux-arm64",
             "windows-amd64": "server/dist/plugin-windows-amd64.exe"
-        }
+        },
+        "executable": ""
     },
     "webapp": {
         "bundle_path": "webapp/dist/main.js"
@@ -29,6 +30,7 @@
                 "type": "generated",
                 "help_text": "The webhook secret set in the presence provider COM server interacting with Outlook.",
                 "regenerate_help_text": "Regenerates the secret for Outlook Presence Provider Plugin. Regenerating this key invalidates any existing token.",
+                "placeholder": "",
                 "default": null
             },
             {
@@ -36,6 +38,7 @@
                 "display_name": "Status response page size",
                 "type": "number",
                 "help_text": "The number of statuses to return on a single page in response to any API returning multiple statuses.",
+                "placeholder": "",
                 "default": 100
             }
         ]
