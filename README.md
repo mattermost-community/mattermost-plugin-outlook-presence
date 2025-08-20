@@ -1,3 +1,5 @@
+## **⚠️ This repository is archived and no longer maintained.**
+
 # Mattermost Plugin Outlook Presence
 
 This plugin is used for getting status updates for users. It adds an additional websocket endpoint to the Mattermost server which can be connected to without an active user's valid token. It also exposes a new paginated API to get the statuses of all users along with their emails. The purpose of this plugin is to provide status updates to Microsoft Outlook through the use of an intermediary [IM app](https://github.com/mattermost/mattermost-outlook-presence-provider). To know more about how to integrate an application with Outlook, you can read the [official docs](https://docs.microsoft.com/en-us/office/client-developer/shared/integrating-im-applications-with-office). (This plugin can be used with any third-party application that wants to subscribe to Mattermost users' status updates.)
